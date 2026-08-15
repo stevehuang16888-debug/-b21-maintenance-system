@@ -7,6 +7,8 @@ const $ = (id) => document.getElementById(id);
 const canvas = $('labelCanvas');
 const ctx = canvas.getContext('2d');
 let printer = null;
+let storedNextDate = '';
+let earlyMaintenanceApproved = true;
 
 function localISODate(d = new Date()) {
   const y = d.getFullYear();
@@ -26,19 +28,25 @@ function displayDate(s) { return s ? s.replaceAll('-', '/') : ''; }
 
 function drawLabel() {
   const id = $('equipmentId').value.trim() || 'EQ-001';
-  const name = $('equipmentName').value.trim() || '設備名稱';
   const maintained = displayDate($('maintenanceDate').value);
   const next = displayDate($('nextDate').value);
+  const maintainer = $('maintainer').value || '---';
 
-  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,584,354);
-  ctx.strokeStyle = '#000'; ctx.lineWidth = 5; ctx.strokeRect(5,5,574,344);
-  ctx.fillStyle = '#000'; ctx.textBaseline = 'middle';
-  ctx.font = 'bold 45px sans-serif'; ctx.fillText('設備保養標籤', 28, 55);
-  ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(20,95); ctx.lineTo(564,95); ctx.stroke();
-  ctx.font = 'bold 34px sans-serif'; ctx.fillText(`設備：${id}`, 28, 130);
-  ctx.font = '30px sans-serif'; ctx.fillText(name.slice(0,18), 28, 180);
-  ctx.font = '30px sans-serif'; ctx.fillText(`保養日期：${maintained}`, 28, 238);
-  ctx.font = 'bold 31px sans-serif'; ctx.fillText(`下次保養：${next}`, 28, 298);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, 354, 177);
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(2, 2, 350, 173);
+  ctx.fillStyle = '#000';
+  ctx.textBaseline = 'middle';
+
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText(`設備 ${id}`, 12, 24);
+  ctx.font = '20px sans-serif';
+  ctx.fillText(`保養 ${maintained}`, 12, 62);
+  ctx.fillText(`下次 ${next}`, 12, 99);
+  ctx.font = 'bold 20px sans-serif';
+  ctx.fillText(`人員 ${maintainer}`, 12, 138);
 }
 
 function updateDates() {
@@ -53,17 +61,54 @@ function setStatus(text, type='') {
   $('status').className = `status ${type}`;
 }
 
+function checkEarlyMaintenance() {
+  if (!storedNextDate) {
+    earlyMaintenanceApproved = true;
+    return true;
+  }
+
+  const today = localISODate();
+  if (today >= storedNextDate) {
+    earlyMaintenanceApproved = true;
+    return true;
+  }
+
+  const ok = window.confirm('未到保養期限，確定執行?');
+  earlyMaintenanceApproved = ok;
+  if (ok) {
+    setStatus(`已確認提前保養（原到期日 ${displayDate(storedNextDate)}）`, 'warn');
+  } else {
+    setStatus(`已取消，本次不更新資料庫（原到期日 ${displayDate(storedNextDate)}）`, 'warn');
+  }
+  return ok;
+}
+
 function loadFromQR() {
   const p = new URLSearchParams(location.search);
   if (p.get('id')) $('equipmentId').value = p.get('id');
   if (p.get('name')) $('equipmentName').value = p.get('name');
   if (p.get('months')) $('intervalMonths').value = p.get('months');
+  if (p.get('next')) storedNextDate = p.get('next');
+
+  const savedMaintainer = localStorage.getItem('b21-maintainer');
+  if (savedMaintainer === 'Hank' || savedMaintainer === 'Duncan') {
+    $('maintainer').value = savedMaintainer;
+  }
+
   $('maintenanceDate').value = localISODate();
   updateDates();
+
+  if (storedNextDate && localISODate() < storedNextDate) {
+    setTimeout(checkEarlyMaintenance, 250);
+  }
 }
 
 ['equipmentId','equipmentName'].forEach(id => $(id).addEventListener('input', drawLabel));
 ['intervalMonths','maintenanceDate'].forEach(id => $(id).addEventListener('change', updateDates));
+$('maintainer').addEventListener('change', () => {
+  if ($('maintainer').value) localStorage.setItem('b21-maintainer', $('maintainer').value);
+  drawLabel();
+});
 
 $('connectBtn').addEventListener('click', async () => {
   try {
@@ -83,6 +128,13 @@ $('connectBtn').addEventListener('click', async () => {
 
 $('printBtn').addEventListener('click', async () => {
   if (!printer) return;
+  if (!$('maintainer').value) {
+    setStatus('請先選擇保養人員 Hank 或 Duncan', 'error');
+    $('maintainer').focus();
+    return;
+  }
+  if (!earlyMaintenanceApproved && !checkEarlyMaintenance()) return;
+
   let printTask = null;
   try {
     drawLabel();
@@ -100,7 +152,7 @@ $('printBtn').addEventListener('click', async () => {
     await printTask.printPage(encoded, 1);
     await printTask.waitForPageFinished();
     await printTask.waitForFinished();
-    setStatus('列印完成', 'ok');
+    setStatus('列印完成；資料庫接上後會在這一步同步寫入保養紀錄', 'ok');
   } catch (e) {
     console.error(e);
     setStatus(`列印失敗：${e?.message || e}`, 'error');

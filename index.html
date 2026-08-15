@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>B21 Pro 保養標籤系統</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/@mmote/niimbluelib@0.0.1-alpha.42/dist/umd/niimbluelib.min.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <h1>B21 Pro 保養標籤系統</h1>
+    <p class="sub">掃描設備 QR Code 後，自動帶入設備資料並更新保養日期。</p>
+
+    <section class="card form-grid">
+      <label>設備編號<input id="equipmentId" /></label>
+      <label>設備名稱<input id="equipmentName" /></label>
+      <label>保養週期（月）<input id="intervalMonths" type="number" min="1" value="1" /></label>
+      <label>保養日期<input id="maintenanceDate" type="date" /></label>
+      <label>下次保養日期<input id="nextDate" type="date" readonly /></label>
+    </section>
+
+    <section class="card">
+      <h2>50 × 30 mm 標籤預覽</h2>
+      <div class="canvas-shell">
+        <canvas id="labelCanvas" width="584" height="354"></canvas>
+      </div>
+    </section>
+
+    <section class="card actions">
+      <button id="connectBtn" class="primary">① 連接 B21 Pro</button>
+      <button id="printBtn" disabled>② 列印保養標籤</button>
+      <button id="disconnectBtn" disabled>中斷連線</button>
+      <div id="status" class="status">尚未連接印表機</div>
+    </section>
+
+    <section class="card help">
+      <h2>QR Code 網址格式</h2>
+      <code>?id=EQ-001&name=真空烤箱&months=1</code>
+      <p>例如 QR Code 連到本頁並帶入以上參數，掃描後設備資料就會自動顯示。</p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>

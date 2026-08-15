@@ -1,3 +1,8 @@
+import {
+  NiimbotBluetoothClient,
+  ImageEncoder,
+} from "https://esm.sh/@mmote/niimbluelib@0.0.1-alpha.42?bundle";
+
 const $ = (id) => document.getElementById(id);
 const canvas = $('labelCanvas');
 const ctx = canvas.getContext('2d');
@@ -62,40 +67,57 @@ function loadFromQR() {
 
 $('connectBtn').addEventListener('click', async () => {
   try {
-    if (!window.NiimbotLib) throw new Error('niimbluelib 載入失敗');
+    if (!navigator.bluetooth) throw new Error('此瀏覽器不支援 Web Bluetooth，請使用 Chrome 或 Edge');
     setStatus('正在開啟藍牙裝置選擇…');
-    printer = new NiimbotLib.NiimbotBluetoothClient();
-    await printer.connect();
-    const info = await printer.getPrinterInfo();
-    setStatus(`已連接：${info.model || 'B21 Pro'}`, 'ok');
+    printer = new NiimbotBluetoothClient();
+    const info = await printer.connect();
+    setStatus(`已連接：${info.deviceName || 'B21 Pro'}`, 'ok');
     $('printBtn').disabled = false;
     $('disconnectBtn').disabled = false;
   } catch (e) {
-    console.error(e); setStatus(`連線失敗：${e.message || e}`, 'error');
+    console.error(e);
+    setStatus(`連線失敗：${e?.message || e}`, 'error');
+    printer = null;
   }
 });
 
 $('printBtn').addEventListener('click', async () => {
   if (!printer) return;
+  let printTask = null;
   try {
     drawLabel();
-    setStatus('正在列印…');
-    const options = { totalPages: 1, density: 3, labelType: 1, printTaskName: 'D110M_V4' };
-    const task = printer.abstraction.newPrintTask(options, NiimbotLib.PrintDirection.Top);
-    task.onProgress = (page, pagePrintProgress, totalPages) => setStatus(`列印中 ${page}/${totalPages}：${pagePrintProgress}%`);
-    await task.printInit();
-    await task.printPage(canvas, 1);
-    await task.printEnd();
+    setStatus('正在準備列印…');
+
+    const encoded = ImageEncoder.encodeCanvas(canvas, 'top');
+    const printTaskName = printer.getPrintTaskType() ?? 'D110M_V4';
+    printTask = printer.abstraction.newPrintTask(printTaskName, {
+      totalPages: 1,
+      statusPollIntervalMs: 100,
+      statusTimeoutMs: 8000,
+    });
+
+    await printTask.printInit();
+    await printTask.printPage(encoded, 1);
+    await printTask.waitForPageFinished();
+    await printTask.waitForFinished();
     setStatus('列印完成', 'ok');
   } catch (e) {
-    console.error(e); setStatus(`列印失敗：${e.message || e}`, 'error');
+    console.error(e);
+    setStatus(`列印失敗：${e?.message || e}`, 'error');
+  } finally {
+    if (printTask) {
+      try { await printTask.printEnd(); } catch (_) {}
+    }
   }
 });
 
 $('disconnectBtn').addEventListener('click', async () => {
   try { if (printer) await printer.disconnect(); } catch (_) {}
-  printer = null; $('printBtn').disabled = true; $('disconnectBtn').disabled = true;
+  printer = null;
+  $('printBtn').disabled = true;
+  $('disconnectBtn').disabled = true;
   setStatus('已中斷印表機連線');
 });
 
 loadFromQR();
+setStatus('B21 Pro 通訊模組已載入，可以連線', 'ok');

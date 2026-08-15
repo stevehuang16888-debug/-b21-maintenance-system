@@ -15,28 +15,36 @@
       <label>設備編號<input id="equipmentId" /></label>
       <label>設備名稱<input id="equipmentName" /></label>
       <label>保養週期（月）<input id="intervalMonths" type="number" min="1" value="1" /></label>
+      <label>保養人員
+        <select id="maintainer">
+          <option value="">請選擇</option>
+          <option value="Hank">Hank</option>
+          <option value="Duncan">Duncan</option>
+        </select>
+      </label>
       <label>保養日期<input id="maintenanceDate" type="date" /></label>
       <label>下次保養日期<input id="nextDate" type="date" readonly /></label>
     </section>
 
     <section class="card">
-      <h2>50 × 30 mm 標籤預覽</h2>
+      <h2>15 × 30 mm 標籤預覽</h2>
+      <p class="sub">實際版面以 30 mm 寬 × 15 mm 高輸出。</p>
       <div class="canvas-shell">
-        <canvas id="labelCanvas" width="584" height="354"></canvas>
+        <canvas id="labelCanvas" width="354" height="177"></canvas>
       </div>
     </section>
 
     <section class="card actions">
       <button id="connectBtn" class="primary">① 連接 B21 Pro</button>
-      <button id="printBtn" disabled>② 列印保養標籤</button>
+      <button id="printBtn" disabled>② 確認保養並列印</button>
       <button id="disconnectBtn" disabled>中斷連線</button>
       <div id="status" class="status">正在載入 B21 Pro 通訊模組…</div>
     </section>
 
     <section class="card help">
       <h2>QR Code 網址格式</h2>
-      <code>?id=EQ-001&name=真空烤箱&months=1</code>
-      <p>例如 QR Code 連到本頁並帶入以上參數，掃描後設備資料就會自動顯示。</p>
+      <code>?id=EQ-001&name=真空烤箱&months=1&next=2026-09-15</code>
+      <p>正式接上 Google Sheet 後，設備名稱、週期與目前下次保養日期會改由資料庫讀取，不需要寫在 QR Code 內。</p>
     </section>
   </main>
   <script type="module" src="app.js"></script>

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>B21 Pro 保養標籤系統</title>
   <link rel="stylesheet" href="style.css" />
-  <script src="https://unpkg.com/@mmote/niimbluelib@0.0.1-alpha.42/dist/umd/niimbluelib.min.js"></script>
 </head>
 <body>
   <main class="wrap">
@@ -31,7 +30,7 @@
       <button id="connectBtn" class="primary">① 連接 B21 Pro</button>
       <button id="printBtn" disabled>② 列印保養標籤</button>
       <button id="disconnectBtn" disabled>中斷連線</button>
-      <div id="status" class="status">尚未連接印表機</div>
+      <div id="status" class="status">正在載入 B21 Pro 通訊模組…</div>
     </section>
 
     <section class="card help">
@@ -40,6 +39,6 @@
       <p>例如 QR Code 連到本頁並帶入以上參數，掃描後設備資料就會自動顯示。</p>
     </section>
   </main>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
